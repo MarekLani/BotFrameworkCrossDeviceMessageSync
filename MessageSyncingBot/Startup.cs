@@ -12,11 +12,21 @@ using MessageSyncingBot.Dialogs.Root;
 using MessageSyncingBot.Helpers;
 using MessageSyncingBot.Interfaces;
 using MessageSyncingBot.Services;
+using Microsoft.Extensions.Configuration;
+using MessageSyncingBot.Middleware;
 
 namespace MessageSyncingBot
 {
     public class Startup
     {
+
+        public Startup(IConfiguration configuration)
+        {
+            this._configuration = configuration;
+        }
+
+        private IConfiguration _configuration { get; }
+
         public void ConfigureServices(IServiceCollection services)
         {
 
@@ -30,11 +40,16 @@ namespace MessageSyncingBot
             services.AddMvc().SetCompatibilityVersion(Microsoft.AspNetCore.Mvc.CompatibilityVersion.Version_2_1);
 
             services.AddSingleton<IBotServices, BotServices>();
-
-            services.AddSingleton<IBotFrameworkHttpAdapter, BotFrameworkHttpAdapter>();
-
             services.AddSingleton<ICredentialProvider, ConfigurationCredentialProvider>();
 
+            services.AddSingleton<IBotFrameworkHttpAdapter, BotFrameworkHttpAdapter>((provider) => {
+                var cred = provider.GetRequiredService<ICredentialProvider>();
+                var adpt = new BotFrameworkHttpAdapter(cred);
+                adpt.Use(new ConversationSynchronizationMiddleware(new SampleUserConversationsStaticStorageProvider(), adpt, _configuration));
+
+                return adpt;
+            });
+            
             services.AddSingleton<IStorage, MemoryStorage>();
 
             services.AddSingleton<UserState>();
@@ -43,10 +58,7 @@ namespace MessageSyncingBot
 
             services.AddSingleton<RootDialog>();
 
-            services.AddBot<MainBot<RootDialog>>(options =>
-            {
-      
-            });
+            services.AddTransient<IBot, MainBot<RootDialog>>();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)

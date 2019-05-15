@@ -88,8 +88,4 @@
       <LastGenOutput>SharedStrings.Designer.cs</LastGenOutput>
     </EmbeddedResource>
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Middleware\" />
-  </ItemGroup>
 </Project>

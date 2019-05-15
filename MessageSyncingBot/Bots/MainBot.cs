@@ -68,22 +68,6 @@ namespace MessageSyncingBot.Bots
         // Process incoming message
         protected override async Task OnMessageActivityAsync(ITurnContext<IMessageActivity> turnContext, CancellationToken cancellationToken)
         {
-            turnContext.OnSendActivities(async (ctx, activities, nextSend) =>
-            {
-                // run full pipeline
-                var responses = await nextSend().ConfigureAwait(false);
-                foreach (var activity in activities)
-                {
-                    foreach (var cr in ConversationSynchronizer.GetConvReferences(activity.Conversation.Id))
-                    {
-                       if(ctx.Activity.Conversation.Id != cr.Key)
-                            await (_adapter as BotFrameworkHttpAdapter).ContinueConversationAsync(_configuration["MicrosoftAppId"], cr.Value, CreateCallback(activity), CancellationToken.None);
-                    }
-                }
-                return responses;
-            });
-
-            await ConversationSynchronizer.ResendMessage(turnContext, cancellationToken);
 
             var state = await _globalStateAccessor.GetAsync(turnContext, () => new GlobalUserState());
 
@@ -107,32 +91,7 @@ namespace MessageSyncingBot.Bots
             }
         }
 
-        private BotCallbackHandler CreateCallback(Activity activity)
-        {
-            return async (turnContext, token) =>
-            {
-                try
-                {
-                    //simulate delay
-                    // await Task.Delay(5000);
-
-                    // Send the user a proactive confirmation message.
-                    await turnContext.SendActivityAsync(activity);
-                }
-                catch (Exception e)
-                {
-                    //TODO handle error logging
-                    throw e;
-                }
-            };
-        }
-    
-        protected override async Task OnConversationUpdateActivityAsync(ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
-        {
-            var reference = turnContext.Activity.GetConversationReference();
-            ConversationSynchronizer.AddConvIdReference(turnContext.Activity.From.Name, turnContext.Activity.Conversation.Id, reference);
-        }
-
+      
         // Greet when users are added to the conversation.
         protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
         {
