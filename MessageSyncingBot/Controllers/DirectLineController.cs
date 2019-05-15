@@ -72,7 +72,6 @@ namespace MessageSyncingBot.Controllers
                 var str = rsp.Content.ReadAsStringAsync().Result;
                 var obj = JsonConvert.DeserializeObject<DirectlineResponse>(str);
                 //token = obj.token;
-                ConversationSynchronizer.AddConversation(userId, obj.conversationId);
     
                 return str;
             }

@@ -76,11 +76,9 @@ namespace MessageSyncingBot.Bots
                 {
                     foreach (var cr in ConversationSynchronizer.GetConvReferences(activity.Conversation.Id))
                     {
-                       // if(activity.Conversation.Id != cr.Key)
+                       if(ctx.Activity.Conversation.Id != cr.Key)
                             await (_adapter as BotFrameworkHttpAdapter).ContinueConversationAsync(_configuration["MicrosoftAppId"], cr.Value, CreateCallback(activity), CancellationToken.None);
-
-                    }//await OnSendActivityAsync(activity, cancellationToken).ConfigureAwait(false);
-                    //Console.WriteLine(activity.Id);
+                    }
                 }
                 return responses;
             });
@@ -132,7 +130,7 @@ namespace MessageSyncingBot.Bots
         protected override async Task OnConversationUpdateActivityAsync(ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
         {
             var reference = turnContext.Activity.GetConversationReference();
-            ConversationSynchronizer.AddConvIdReference(turnContext.Activity.Conversation.Id, reference);
+            ConversationSynchronizer.AddConvIdReference(turnContext.Activity.From.Name, turnContext.Activity.Conversation.Id, reference);
         }
 
         // Greet when users are added to the conversation.
