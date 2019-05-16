@@ -9,6 +9,7 @@
     <script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
     <script src="https://unpkg.com/react@16.5.0/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@16.5.0/umd/react-dom.development.js"></script>
+	<script src="https://unpkg.com/simple-update-in/dist/simple-update-in.production.min.js"></script>
     <!--
       For demonstration purposes, we are using the development branch of Web Chat at "/master/webchat.js".
       When you are using Web Chat for production, you should use the latest stable release at "/latest/webchat.js",
@@ -36,8 +37,13 @@
 
         //const res = await fetch('https://webchat-mockbot.azurewebsites.net/directline/token', { method: 'POST' });
 		
-		const res = await fetch('https://901a4a8c.eu.ngrok.io/api/directline/token', { 
-			body: JSON.stringify({userId: 'Marekk' } ),
+		var user = {
+            id: 'Marekk',
+            name: 'Marekk'
+        };
+		
+		const res = await fetch('https://ab4baad0.eu.ngrok.io/api/directline/token', { 
+			body: JSON.stringify({userId: user.id } ),
 			headers: {
 				'Content-Type': 'application/json'
 			},
@@ -47,29 +53,27 @@
         const { token } = await res.json();
         const { ReactWebChat } = window.WebChat;
 		
-		const store = window.WebChat.createStore({}, ({ dispatch }) => next => action => {
-         if (action.type === 'DIRECT_LINE/CONNECT_FULFILLED') {
-          dispatch({
-             type: 'WEB_CHAT/SEND_EVENT',
-             payload: {
-               name: 'webchat/join',
-               value: { language: window.navigator.language }
-             }
-           });
-         }
-         return next(action);
-       });
 	   
 	   let directLine = window.WebChat.createDirectLine({ token: token })
 	   
-	   var user = {
-            id: 'Marekk',
-            name: 'Marekk'
-        };
 	   
+	   
+	   
+       const store = window.WebChat.createStore(
+         {},
+         ({ dispatch }) => next => action => {
+           if (action.type === 'DIRECT_LINE/POST_ACTIVITY' || action.type === 'DIRECT_LINE/CONNECT_FULFILLED') {
+
+             action = window.simpleUpdateIn(action, ['payload', 'activity', 'channelData', 'chatWindowID'], () => 'myId');
+			 console.log(action);
+           }
+
+           return next(action);
+         }
+       );
 
         window.ReactDOM.render(
-          <ReactWebChat directLine={ directLine} />,
+          <ReactWebChat directLine={directLine} store={store} userID="UserName" />,
           document.getElementById('webchat')
         );
 	

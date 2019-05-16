@@ -5,7 +5,6 @@ using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,6 +15,8 @@ namespace MessageSyncingBot.Middleware
         private IUserConversationsStorageProvider _ucs;
         private BotAdapter _adapter;
         private IConfiguration _configuration;
+
+        private static int timeOffset = 0;
 
         public ConversationSynchronizationMiddleware(IUserConversationsStorageProvider ucs, BotAdapter adapter, IConfiguration configuration)
         {
@@ -44,25 +45,34 @@ namespace MessageSyncingBot.Middleware
                     }
                     var a = CloneActivity(turnContext.Activity);
 
-                    //Activity ID needs to be unique
-                    a.Id = string.Concat(a.Conversation.Id + "_" + Guid.NewGuid().ToString());
+                    //Activity ID needs to be unique to be displayed
+                    //a.Id = string.Concat(a.Id.Conversation.Id);
                     a.Timestamp = DateTimeOffset.UtcNow;
-                    a.ChannelData = string.Empty; // WebChat uses ChannelData for id comparisons, so we clear it here
+
+                    //Test of message ordering result: WebChat orders messages automatically
+                    //a.Timestamp = DateTimeOffset.UtcNow.AddSeconds(-timeOffset);
+                    //timeOffset += 10;
+
+                    //We want only other instances of webchat to display message, not the originating one, so we leave channel data as is
+                    //a.ChannelData = string.Empty; // WebChat uses ChannelData for id comparisons
 
                     var connectorClient = turnContext.TurnState.Get<ConnectorClient>(typeof(IConnectorClient).FullName);
 
-                    foreach (var c in conversationsWithRef)
+                    if (conversationsWithRef.Count > 1)
                     {
-                        //We do not want to resend message to same conversation
-                        if (turnContext.Activity.Conversation.Id == c.Key)
-                            continue;
+                        foreach (var c in conversationsWithRef)
+                        {
+                            //We do not want to resend message to same conversation, 
+                            //handled by keeping channelData already, however we can save bandwith 
+                            if (turnContext.Activity.Conversation.Id == c.Key)
+                                continue;
 
-                        a.Conversation.Id = c.Key;
-                        var transcript = new Transcript(new List<Activity>() { a as Activity });
+                            a.Conversation.Id = c.Key;
+                            var transcript = new Transcript(new List<Activity>() { a as Activity });
 
-                        await connectorClient.Conversations.SendConversationHistoryAsync(c.Key, transcript, cancellationToken: cancellationToken);
+                            await connectorClient.Conversations.SendConversationHistoryAsync(c.Key, transcript, cancellationToken: cancellationToken);
+                        }
                     }
-
                 }
             }
         }
@@ -74,9 +84,7 @@ namespace MessageSyncingBot.Middleware
         {
             activity = JsonConvert.DeserializeObject<Activity>(JsonConvert.SerializeObject(activity, _jsonSettings));
             return activity;
-
         }
-
 
         public async Task OnTurnAsync(ITurnContext turnContext, NextDelegate next, CancellationToken cancellationToken = default)
         {
@@ -85,21 +93,17 @@ namespace MessageSyncingBot.Middleware
             {
                 
                 var reference = turnContext.Activity.GetConversationReference();
+
+                //Currently userid not working for reactwebchat, it is not being sent reported bug: https://github.com/microsoft/BotFramework-WebChat/issues/1992
                 _ucs.AddConvIdReference(turnContext.Activity.From.Name, turnContext.Activity.Conversation.Id, reference);
+            }
+            if(turnContext.Activity.Type == ActivityTypes.Message)
+            {
+                await ResendUserMessage(turnContext, cancellationToken);
             }
 
             if (turnContext.Activity.Type != ActivityTypes.Event)
             {
-                try
-                {
-
-                    await ResendUserMessage(turnContext, cancellationToken);
-                    //await Task.Delay(500);
-                    // process bot logic
-                    
-
-                }
-                catch (Exception) { }
                 turnContext.OnSendActivities(async (ctx, activities, nextSend) =>
                 {
                     // run full pipeline
@@ -117,8 +121,8 @@ namespace MessageSyncingBot.Middleware
             }
 
 
+            await next(cancellationToken).ConfigureAwait(false);
 
-            
 
             //turnContext.OnUpdateActivity(async (ctx, activities, nextUpdate) =>
             //{
@@ -141,7 +145,7 @@ namespace MessageSyncingBot.Middleware
                 {
                     //simulate delay
                     // await Task.Delay(5000);
-
+                    activity.Timestamp = DateTimeOffset.UtcNow.AddSeconds(timeOffset);
                     // Send the user a proactive confirmation message.
                     await turnContext.SendActivityAsync(activity);
                 }

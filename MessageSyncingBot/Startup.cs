@@ -10,8 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MessageSyncingBot.Bots;
 using MessageSyncingBot.Dialogs.Root;
 using MessageSyncingBot.Helpers;
-using MessageSyncingBot.Interfaces;
-using MessageSyncingBot.Services;
 using Microsoft.Extensions.Configuration;
 using MessageSyncingBot.Middleware;
 
@@ -39,7 +37,6 @@ namespace MessageSyncingBot
 
             services.AddMvc().SetCompatibilityVersion(Microsoft.AspNetCore.Mvc.CompatibilityVersion.Version_2_1);
 
-            services.AddSingleton<IBotServices, BotServices>();
             services.AddSingleton<ICredentialProvider, ConfigurationCredentialProvider>();
 
             services.AddSingleton<IBotFrameworkHttpAdapter, BotFrameworkHttpAdapter>((provider) => {

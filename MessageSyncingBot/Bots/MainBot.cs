@@ -90,35 +90,11 @@ namespace MessageSyncingBot.Bots
                 await _dialog.Run(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken: cancellationToken);
             }
         }
-
       
         // Greet when users are added to the conversation.
-        protected override async Task OnMembersAddedAsync(IList<ChannelAccount> membersAdded, ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
+        protected override async Task  OnConversationUpdateActivityAsync(ITurnContext<IConversationUpdateActivity> turnContext, CancellationToken cancellationToken)
         {
            
-
-            // Welcome each member that was added
-            foreach (var member in membersAdded)
-            {
-                // The bot itself is a conversation member too ... this check makes sure this is not the bot joining
-                if (member.Id != turnContext.Activity.Recipient.Id)
-                {
-                    // Look for web chat channel because it sends this event when a user messages so we want to only do this if not webchat. Webchat welcome is handled on receipt of first message
-                    if (turnContext.Activity.ChannelId.ToLower() != WebChatChannelId)
-                    {
-                        // Set state
-                        var state = await _globalStateAccessor.GetAsync(turnContext, () => new GlobalUserState());
-                        state.DidBotWelcomeUser = true;
-
-                        // Send welcome message
-                        var name = member.Name ?? string.Empty;
-                        await turnContext.SendActivityAsync($"{String.Format(MainBotStrings.WelcomeToTheConversation_name, name)}", cancellationToken: cancellationToken);
-
-                        // Run the initial dialog
-                        await _dialog.Run(turnContext, _conversationState.CreateProperty<DialogState>(nameof(DialogState)), cancellationToken: cancellationToken);
-                    }
-                }
-            }
         }
 
 

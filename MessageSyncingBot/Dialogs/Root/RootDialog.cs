@@ -7,7 +7,6 @@ using Microsoft.Bot.Builder.Dialogs.Choices;
 using MessageSyncingBot.Dialogs.Country;
 using MessageSyncingBot.Dialogs.NameAge;
 using MessageSyncingBot.Dialogs.Root.Resources;
-using MessageSyncingBot.Interfaces;
 using MessageSyncingBot.Resources;
 using System.Collections.Generic;
 using System.Threading;
@@ -18,11 +17,9 @@ namespace MessageSyncingBot.Dialogs.Root
     public class RootDialog : ComponentDialog
     {
         private const string ChoicePromptName = "choiceprompt";
-        private readonly IBotServices _botServices;
 
-        public RootDialog(IBotServices botServices, UserState userState) : base(nameof(RootDialog))
+        public RootDialog( UserState userState) : base(nameof(RootDialog))
         {
-            _botServices = botServices;
 
             // Define the steps of the waterfall dialog and add it to the set.
             var waterfallSteps = new WaterfallStep[]
