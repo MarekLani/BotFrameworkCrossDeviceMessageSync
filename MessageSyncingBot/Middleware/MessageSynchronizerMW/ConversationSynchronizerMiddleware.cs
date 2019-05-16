@@ -88,18 +88,18 @@ namespace MessageSyncingBot.Middleware
 
         public async Task OnTurnAsync(ITurnContext turnContext, NextDelegate next, CancellationToken cancellationToken = default)
         {
-
-            if (turnContext.Activity.Type == ActivityTypes.ConversationUpdate)
-            {
-                
-                var reference = turnContext.Activity.GetConversationReference();
-
-                //Currently userid not working for reactwebchat, it is not being sent reported bug: https://github.com/microsoft/BotFramework-WebChat/issues/1992
-                _ucs.AddConvIdReference(turnContext.Activity.From.Name, turnContext.Activity.Conversation.Id, reference);
-            }
             if(turnContext.Activity.Type == ActivityTypes.Message)
             {
                 await ResendUserMessage(turnContext, cancellationToken);
+            }
+
+            if (turnContext.Activity.Type == ActivityTypes.Event)
+            {
+                if (turnContext.Activity.Name == "webchat/join")
+                {
+                    var reference = turnContext.Activity.GetConversationReference();
+                    _ucs.AddConvIdReference(turnContext.Activity.From.Name, turnContext.Activity.Conversation.Id, reference);
+                }
             }
 
             if (turnContext.Activity.Type != ActivityTypes.Event)
@@ -120,9 +120,7 @@ namespace MessageSyncingBot.Middleware
                 });
             }
 
-
             await next(cancellationToken).ConfigureAwait(false);
-
 
             //turnContext.OnUpdateActivity(async (ctx, activities, nextUpdate) =>
             //{
@@ -133,8 +131,6 @@ namespace MessageSyncingBot.Middleware
             //    var responses = await nextUpdate().ConfigureAwait(false);
             //    return responses;
             //});
-
-
         }
 
         private BotCallbackHandler CreateCallback(Activity activity)
